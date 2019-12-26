@@ -41,7 +41,7 @@ class IntComputer:
         #assert(number_missing_memory) < 100000000                   #TODO: what are we doing when we have to allocate to large memory
         #TODO: simply enlarge memory with random number ?
         some_large_number = 1000000
-        self.memory = self.memory + [0]*some_large_number # two lists are joined
+        self.memory = self.memory + [0]*some_large_number # join the memory list with additional memory
         
 
     def increment_program_pointer(self):
@@ -62,7 +62,9 @@ class IntComputer:
         solution_adress = self.memory[self.program_pointer]
         self.increment_program_pointer()
 
-        self.memory[solution_adress] = arg1 + arg2
+        solution = arg1 + arg2
+        # Use setter function to check if adressing mode of target is 0 or 2 (1 does not make sense )
+        self.set_parameter_from_mode(solution, solution_adress)   
 
     # Instruction 2: Multiplication
     def multiply(self):
@@ -77,7 +79,8 @@ class IntComputer:
         solution_adress = self.memory[self.program_pointer]
         self.increment_program_pointer()
 
-        self.memory[solution_adress] = arg1*arg2
+        solution = arg1*arg2
+        self.set_parameter_from_mode(solution, solution_adress)
     
     # Instruction 3: 
     def inqueue(self):
@@ -85,8 +88,10 @@ class IntComputer:
         solution_adress = self.memory[self.program_pointer]
         self.increment_program_pointer()
 
-        self.memory[solution_adress] = self.input.get() # first-out value of the queue
-        
+        #self.memory[solution_adress] = self.input.get() # first-out value of the queue
+        solution = self.input.get()
+        self.set_parameter_from_mode(solution, solution_adress)
+
     # Instruction 4: 
     def outqueue(self):
 
@@ -135,8 +140,9 @@ class IntComputer:
         solution_adress = self.memory[self.program_pointer]
         self.increment_program_pointer()
 
-        self.memory[solution_adress] = 1 if arg1 < arg2 else 0
-    
+        solution = 1 if arg1 < arg2 else 0
+        self.set_parameter_from_mode(solution, solution_adress)
+
     # Instruction 8:
     def equals(self):
         arg1 = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer) 
@@ -148,7 +154,9 @@ class IntComputer:
         solution_adress = self.memory[self.program_pointer]
         self.increment_program_pointer()
 
-        self.memory[solution_adress] = 1 if arg1 == arg2 else 0
+        solution = 1 if arg1 == arg2 else 0
+        self.set_parameter_from_mode(solution, solution_adress)
+
     
     # Instruction 9: adjust the rel base by the value of its only parameter
     def adj_rel_base(self):
@@ -162,7 +170,7 @@ class IntComputer:
         self.program_pointer = -1
 
     # 
-    def get_parameter_from_mode(self, mode, address):
+    def get_parameter_from_mode(self, mode, address): #TODO: refactoring: do i need mode and address ?(self owns these)
         
         # position mode
         if mode == 0:
@@ -181,6 +189,24 @@ class IntComputer:
         else:
             return ValueError
     
+    # Set memory to solution value w.r.t current addressing mode
+    def set_parameter_from_mode(self, solution, solution_adress):
+
+        if self.addressing_modes[-3] == 0 or self.addressing_modes[-3] == 1:
+            self.memory[solution_adress] = solution # simply like before write solution to address
+
+        # in day 9 a new mode is introduced that holds also for writing
+        elif self.addressing_modes[-3] == 2:
+            self.memory[solution_adress + self.relative_base] = solution
+            # solution_adress = self.memory[self.program_pointer]
+
+        else:
+            raise Exception 
+
+
+
+
+
     # The opcode (current adress the pointer points on) is filled up to NUM_ADDRESSING_MODES + INSTRUCTION_LEN (=5) digits in total
     # The first left NUM_ADDRESSING_MODES (=3) of the opcode determine the mode of adressing the target of the operation, followed by INSTRUCTION_LEN(2) instructions
     # Let (AM3, AM2, AM1, I2, I1) be the zero padded opcode and, then the entries mean:
