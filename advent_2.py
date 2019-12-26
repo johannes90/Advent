@@ -2,7 +2,7 @@ from IntComputer import *
 
 
 # 2. Advent day:
-f = open("advent2_input.txt", "r")
+f = open("advent_02_input.txt", "r")
 puzzle_data = f.read()
 
 print(puzzle_data)

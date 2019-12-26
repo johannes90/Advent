@@ -10,9 +10,9 @@ class IntComputer:
 
     def __init__(self):
 
-        self.memory           = []                           # RAM of Inn Computer
-        self.program_pointer  = None                         # points on the adress of the current instruction of the programm
-        self.instruction_dict = {1:  self.add, 
+        self.memory           = []                       # RAM of Inn Computer
+        self.program_pointer  = None                     # points on the adress of the current instruction of the programm
+        self.instruction_dict = {1:  self.add,           # dictionary for instruction functions
                                  2:  self.multiply, 
                                  3:  self.inqueue,
                                  4:  self.outqueue,
@@ -21,17 +21,20 @@ class IntComputer:
                                  7:  self.less_than,
                                  8:  self.equals,
                                  99: self.halt}
+        self.input             = queue.Queue()  
+        self.output            = 0             
+        self.next_intcomputer  = None                   # Output for the next intcomputer
 
-        self.input            = queue.LifoQueue()
-        self.addressing_modes  = [0,0,0]                 
+        #TODO: we need Fifo (default Queue) instead of LifoQueue, because with get we want the "oldest" item    
+        self.addressing_modes = [0,0,0]                 
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
-
         self.memory = list(map(lambda x: int(x), instruction_string.split(",")))
 
-    def increment_program_pointer(self):
+        self.input  = queue.Queue()
 
+    def increment_program_pointer(self):
         self.program_pointer += 1
 
     """ Instruction functions of the int computer """
@@ -77,8 +80,13 @@ class IntComputer:
     # Instruction 4: 
     def outqueue(self):
 
-        # Output value 
-        print(self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer))
+        # Output value (print and store in a list)
+        outp = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer)
+        self.output = outp
+
+        if self.next_intcomputer != None:
+            self.next_intcomputer.set_input(outp)
+                
         self.increment_program_pointer()
 
     # Instruction 5: 
@@ -154,7 +162,6 @@ class IntComputer:
     # AM2 = adressing mode of the second argument
     # AM1 = adressing mode of the first argument
     # I2, I1 = Instruction 
-    # TODO: current value in memory = instruction = adressing, opcode (the other way round)
     def build_adressing_modes(self, opcode):
 
         # Fill up opcode with zeros to constant length
@@ -164,16 +171,16 @@ class IntComputer:
 
     # execution of the programm based on the values of the puzzle inputs
     def execute_programm(self):
-        self.program_pointer =0
+        self.program_pointer = 0
 
         while(self.program_pointer>=0):
-
+            
             opcode = self.memory[self.program_pointer]
             self.increment_program_pointer()
             
             self.build_adressing_modes(opcode)
 
-            # the last two digits of the opcode is the instruction
+            # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
 
             # Evaluate the correct function 
@@ -187,3 +194,8 @@ class IntComputer:
     def set_memory(self, adress, value):
         self.memory[adress] = value
 
+    def set_input(self, input):
+        self.input.put(input)
+
+    def connect_with_next_intcomputer(self, intcomputer):
+        self.next_intcomputer = intcomputer
