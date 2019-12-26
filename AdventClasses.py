@@ -20,19 +20,29 @@ class IntComputer:
                                  6:  self.jump_if_False,
                                  7:  self.less_than,
                                  8:  self.equals,
+                                 9:  self.adj_rel_base,
                                  99: self.halt}
         self.input             = queue.Queue()  
         self.output            = 0             
         self.next_intcomputer  = None                   # Output for the next intcomputer
-
-        #TODO: we need Fifo (default Queue) instead of LifoQueue, because with get we want the "oldest" item    
-        self.addressing_modes = [0,0,0]                 
+        self.relative_base     = 0
+        self.memory_size       = 0
+        self.addressing_modes = [0, 0, 0]                 
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
         self.memory = list(map(lambda x: int(x), instruction_string.split(",")))
-
+        
+        # Reset the input if a new programm is started
         self.input  = queue.Queue()
+
+        # Enlarge memory if there exist larger values in the memory
+        #number_missing_memory = max(self.memory) - len(self.memory) + 1
+        #assert(number_missing_memory) < 100000000                   #TODO: what are we doing when we have to allocate to large memory
+        #TODO: simply enlarge memory with random number ?
+        some_large_number = 1000000
+        self.memory = self.memory + [0]*some_large_number # two lists are joined
+        
 
     def increment_program_pointer(self):
         self.program_pointer += 1
@@ -83,7 +93,7 @@ class IntComputer:
         # Output value (print and store in a list)
         outp = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer)
         self.output = outp
-
+        print(outp)
         if self.next_intcomputer != None:
             self.next_intcomputer.set_input(outp)
                 
@@ -139,6 +149,13 @@ class IntComputer:
         self.increment_program_pointer()
 
         self.memory[solution_adress] = 1 if arg1 == arg2 else 0
+    
+    # Instruction 9: adjust the rel base by the value of its only parameter
+    def adj_rel_base(self):
+        arg1 = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer)
+        self.increment_program_pointer()
+
+        self.relative_base += arg1
 
     # Instruction 99: Halt of program
     def halt(self):
@@ -146,14 +163,23 @@ class IntComputer:
 
     # 
     def get_parameter_from_mode(self, mode, address):
-
+        
+        # position mode
         if mode == 0:
             return self.memory[self.memory[address]]
+        
+        # imidiate mode
         elif mode == 1:
             return self.memory[address]
+        
+        # relative (position) mode 
+        elif mode == 2:
+        
+            # The address starts at its relative base (that is changed with opcode 9)
+            return self.memory[self.memory[address] + self.relative_base] 
+
         else:
-            # later adcents day
-            print("bla")
+            return ValueError
     
     # The opcode (current adress the pointer points on) is filled up to NUM_ADDRESSING_MODES + INSTRUCTION_LEN (=5) digits in total
     # The first left NUM_ADDRESSING_MODES (=3) of the opcode determine the mode of adressing the target of the operation, followed by INSTRUCTION_LEN(2) instructions
