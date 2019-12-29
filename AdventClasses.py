@@ -8,9 +8,9 @@ class IntComputer:
     INSTRUCTION_LEN      = 2
     NUM_ADDRESSING_MODES = 3
 
-    def __init__(self):
+    def __init__(self, debug_mode = False):
 
-        self.memory           = []                       # RAM of Inn Computer
+        self.memory           = []                       # RAM of Int Computer
         self.program_pointer  = None                     # points on the adress of the current instruction of the programm
         self.instruction_dict = {1:  self.add,           # dictionary for instruction functions
                                  2:  self.multiply, 
@@ -27,7 +27,8 @@ class IntComputer:
         self.next_intcomputer  = None                   # Output for the next intcomputer
         self.relative_base     = 0
         self.memory_size       = 0
-        self.addressing_modes = [0, 0, 0]                 
+        self.addressing_modes  = [0, 0, 0]       
+        self.debug_mode        = debug_mode          
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
@@ -36,10 +37,6 @@ class IntComputer:
         # Reset the input if a new programm is started
         self.input  = queue.Queue()
 
-        # Enlarge memory if there exist larger values in the memory
-        #number_missing_memory = max(self.memory) - len(self.memory) + 1
-        #assert(number_missing_memory) < 100000000                   #TODO: what are we doing when we have to allocate to large memory
-        #TODO: simply enlarge memory with random number ?
         some_large_number = 1000000
         self.memory = self.memory + [0]*some_large_number # join the memory list with additional memory
         
@@ -58,13 +55,9 @@ class IntComputer:
         arg2 = self.get_parameter_from_mode(self.addressing_modes[-2], self.program_pointer) 
         self.increment_program_pointer()
 
-        # Adressing mode of target is never 1(illogical) but might be other than 0 
-        solution_adress = self.memory[self.program_pointer]
-        self.increment_program_pointer()
-
         solution = arg1 + arg2
         # Use setter function to check if adressing mode of target is 0 or 2 (1 does not make sense )
-        self.set_parameter_from_mode(solution, solution_adress)   
+        self.set_parameter_from_mode(self.addressing_modes[-3], solution, self.program_pointer)
 
     # Instruction 2: Multiplication
     def multiply(self):
@@ -75,35 +68,28 @@ class IntComputer:
 
         arg2 = self.get_parameter_from_mode(self.addressing_modes[-2], self.program_pointer) 
         self.increment_program_pointer()
-    
-        solution_adress = self.memory[self.program_pointer]
-        self.increment_program_pointer()
 
         solution = arg1*arg2
-        self.set_parameter_from_mode(solution, solution_adress)
+        self.set_parameter_from_mode(self.addressing_modes[-3], solution, self.program_pointer)
     
     # Instruction 3: 
     def inqueue(self):
 
-        solution_adress = self.memory[self.program_pointer]
-        self.increment_program_pointer()
-
-        #self.memory[solution_adress] = self.input.get() # first-out value of the queue
         solution = self.input.get()
-        self.set_parameter_from_mode(solution, solution_adress)
+        self.set_parameter_from_mode(self.addressing_modes[-1], solution, self.program_pointer)
 
     # Instruction 4: 
     def outqueue(self):
 
         # Output value (print and store in a list)
         outp = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer)
+        self.increment_program_pointer()
+
         self.output = outp
         print(outp)
         if self.next_intcomputer != None:
             self.next_intcomputer.set_input(outp)
                 
-        self.increment_program_pointer()
-
     # Instruction 5: 
     def jump_if_True(self):
 
@@ -137,11 +123,8 @@ class IntComputer:
         arg2 = self.get_parameter_from_mode(self.addressing_modes[-2], self.program_pointer) 
         self.increment_program_pointer()
 
-        solution_adress = self.memory[self.program_pointer]
-        self.increment_program_pointer()
-
         solution = 1 if arg1 < arg2 else 0
-        self.set_parameter_from_mode(solution, solution_adress)
+        self.set_parameter_from_mode(self.addressing_modes[-3], solution, self.program_pointer)
 
     # Instruction 8:
     def equals(self):
@@ -151,16 +134,15 @@ class IntComputer:
         arg2 = self.get_parameter_from_mode(self.addressing_modes[-2], self.program_pointer) 
         self.increment_program_pointer()
 
-        solution_adress = self.memory[self.program_pointer]
-        self.increment_program_pointer()
-
         solution = 1 if arg1 == arg2 else 0
-        self.set_parameter_from_mode(solution, solution_adress)
+        self.set_parameter_from_mode(self.addressing_modes[-3], solution, self.program_pointer)
 
     
     # Instruction 9: adjust the rel base by the value of its only parameter
     def adj_rel_base(self):
-        arg1 = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer)
+        
+        #arg1 = self.memory[self.program_pointer]
+        arg1 = self.get_parameter_from_mode(self.addressing_modes[-1], self.program_pointer) 
         self.increment_program_pointer()
 
         self.relative_base += arg1
@@ -190,22 +172,20 @@ class IntComputer:
             return ValueError
     
     # Set memory to solution value w.r.t current addressing mode
-    def set_parameter_from_mode(self, solution, solution_adress):
+    def set_parameter_from_mode(self, mode, solution, address): # 
 
-        if self.addressing_modes[-3] == 0 or self.addressing_modes[-3] == 1:
-            self.memory[solution_adress] = solution # simply like before write solution to address
+
+        if mode == 0: #or self.addressing_modes[-3] == 1:
+            self.memory[self.memory[address]] = solution # simply like before write solution to address
 
         # in day 9 a new mode is introduced that holds also for writing
-        elif self.addressing_modes[-3] == 2:
-            self.memory[solution_adress + self.relative_base] = solution
+        elif mode == 2:
+            self.memory[self.memory[address] + self.relative_base] = solution
             # solution_adress = self.memory[self.program_pointer]
 
         else:
-            raise Exception 
-
-
-
-
+            raise ValueError 
+        self.increment_program_pointer()
 
     # The opcode (current adress the pointer points on) is filled up to NUM_ADDRESSING_MODES + INSTRUCTION_LEN (=5) digits in total
     # The first left NUM_ADDRESSING_MODES (=3) of the opcode determine the mode of adressing the target of the operation, followed by INSTRUCTION_LEN(2) instructions
@@ -224,9 +204,10 @@ class IntComputer:
     # execution of the programm based on the values of the puzzle inputs
     def execute_programm(self):
         self.program_pointer = 0
-
+        
+        iter = 0
         while(self.program_pointer>=0):
-            
+            last_pointer = self.program_pointer             
             opcode = self.memory[self.program_pointer]
             self.increment_program_pointer()
             
@@ -238,6 +219,9 @@ class IntComputer:
             # Evaluate the correct function 
             self.instruction_dict[instruction_code]()
 
+            if self.debug_mode:
+                self.debug_print_at_end_iter(iter, opcode, last_pointer)
+            iter += 1
     # Reads the memory of the int computer at a given address
     def read_memory(self, adress):
         return self.memory[adress]
@@ -246,8 +230,20 @@ class IntComputer:
     def set_memory(self, adress, value):
         self.memory[adress] = value
 
+    # Put one element of the input queue 
     def set_input(self, input):
         self.input.put(input)
 
+    # Connects two int computer
     def connect_with_next_intcomputer(self, intcomputer):
         self.next_intcomputer = intcomputer
+
+    # Functionality for debugging prints
+    def debug_print_at_end_iter(self, iter, opcode, last_pointer):
+
+        print("Iteration: ", iter)
+        print("Pointer(start of iter): ", last_pointer)
+        print("Pointer(end of iter): ", self.program_pointer)
+        print("Opcode: ", opcode)
+        print("adressing modes: ", self.addressing_modes)   
+        print("Instruction: ", opcode%100, "-> fct:", str(self.instruction_dict[opcode%100])) 

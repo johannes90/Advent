@@ -1,4 +1,4 @@
-from IntComputer import *
+from AdventClasses import IntComputer
 
 
 # 2. Advent day:

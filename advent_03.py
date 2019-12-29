@@ -1,6 +1,5 @@
 import numpy as np
 import time
-
 import matplotlib.pyplot as plt
 """
 Day 3: Crossed Wires - Part1 
@@ -72,37 +71,25 @@ for i in range(len(wire1)):
     x2_old = x2_new
     y2_old = y2_new
 
-# Extract intersections 
-wire1 = np.append(wire_x1.reshape(1,-1), wire_y1.reshape(1,-1), axis = 1)
-wire2 = np.append(wire_x2.reshape(1,-1), wire_y2.reshape(1,-1), axis = 1)
+# Concat wires 
+wire1_arr = np.append(wire_x1.reshape(1,-1), wire_y1.reshape(1,-1), axis = 0)
+wire2_arr = np.append(wire_x2.reshape(1,-1), wire_y2.reshape(1,-1), axis = 0)
 
-intersections = np.array([])
-for i in range(wire1.shape[1]):
-    if  np.isin(wire1[:, i], wire2):
-        intersections =  np.append(intersections, wire1[:, i])
-    if i%1000 == 0:
-        print(i)
-plt.figure(1)
-#plt.plot(wire_x1, wire_y1, '*')
-plt.plot(wire_x1, wire_y1, color = "blue", label = "wire1")
-plt.plot(wire_x2, wire_y2, color = "red", label = "wire2")
-
+# # 
 plt.figure(2)
-
+plt.plot(wire1_arr[0,:], wire1_arr[1,:], color = "blue", label = "wire1 arr")
+plt.plot(wire2_arr[0,:], wire2_arr[1,:], color = "red", label = "wire1 arr")
 plt.show()
-print("done...")
-"""
-# Find crossing point
-for i in range(len(wire1_xy)-1):
-    
-    point11 = wire1_xy[i]
-    point12 = wire1_xy[i+1]
 
-    for j in range(len(wire2_xy)-1):
-        point21 = wire2_xy[i]
-        point22 = wire2_xy[i+1]
-        
-        # intersection condition
-        if
 
-        """
+
+# Transform the arr to a set
+# arr -> x,y tuples -> set
+arr1 = np.array([[1,2,3,4,5]])
+arr2 = 10*np.array([[1,2,3,4,5]])
+
+nested_lst = list(np.append(arr1, arr2, axis = 0))
+
+nested_lst_of_tuples = [tuple(l) for l in nested_lst]
+
+print("done..")
