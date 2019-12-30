@@ -9,8 +9,8 @@ class PaintRobot:
 
     def __init__(self, width, height):
         
-        self.DIR                    = {0: [0,1], 1: [-1,0], 2: [0,-1], 3: [1,0]} # x,y directions (up, left, down, right)
-        self.NUM_ROBOT_INSTRUCTIONS = 2
+        self.DIR             = {0: [0,1], 1: [-1,0], 2: [0,-1], 3: [1,0]}       # (x,y) directions (up, left, down, right)
+        self.NUM_ROBOT_INSTR = 2
 
         self.grid_height  = height
         self.grid_width   = width
@@ -19,9 +19,9 @@ class PaintRobot:
         self.position     = int(self.grid_height/2.0), int(self.grid_width/2.0) # set robot into the middle of the map
         self.panels_painted = {self.position}                                   # set containing the starting point 
 
-        self.instruction  = queue.Queue(self.NUM_ROBOT_INSTRUCTIONS)            # queue for color and turn instruction
+        self.instruction  = queue.Queue(self.NUM_ROBOT_INSTR)                   # queue for color and turn instruction
         self.color_out    = queue.Queue(1)                                      # queue for the color on the current panel
-        self.color_out.put(0)
+        self.color_out.put(1)                                                   # startcolor of robot
         
     # order: (color, turn)
     def get_instructions(self, new_instr):
@@ -29,7 +29,11 @@ class PaintRobot:
 
     # Turn is either 0=left 1 = right
     def update_orientation(self, turn):
-        self.orientation = (self.orientation + turn)%4
+        if turn == 0:
+            delta_orientation = -1
+        elif turn == 1:
+            delta_orientation = 1 
+        self.orientation = (self.orientation + delta_orientation)%4
 
     def update_color(self, color):
         self.color_grid2D[self.position] = color
@@ -87,7 +91,7 @@ class IntComputer:
         self.debug_mode        = debug_mode          
 
         # day 11:
-        self.robot             = PaintRobot(10000, 10000)
+        self.robot             = PaintRobot(100, 100)
         self.out_instr         = queue.Queue(1)  
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
