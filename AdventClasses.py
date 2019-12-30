@@ -1,8 +1,64 @@
 """
-
+    Module with classes and functionality for the advent of code asignments
 """
 import queue
+import numpy as np
 
+# Day 11: 
+class PaintRobot:
+
+    def __init__(self, width, height):
+        
+        self.DIR                    = {0: [0,1], 1: [-1,0], 2: [0,-1], 3: [1,0]} # x,y directions (up, left, down, right)
+        self.NUM_ROBOT_INSTRUCTIONS = 2
+
+        self.grid_height  = height
+        self.grid_width   = width
+        self.color_grid2D = np.zeros((self.grid_height, self.grid_width))
+        self.orientation  = 0                                                   # start with orientation 0 = upwards
+        self.position     = int(self.grid_height/2.0), int(self.grid_width/2.0) # set robot into the middle of the map
+        self.panels_painted = {self.position}                                   # set containing the starting point 
+
+        self.instruction  = queue.Queue(self.NUM_ROBOT_INSTRUCTIONS)            # queue for color and turn instruction
+        self.color_out    = queue.Queue(1)                                      # queue for the color on the current panel
+        self.color_out.put(0)
+        
+    # order: (color, turn)
+    def get_instructions(self, new_instr):
+        self.instruction.put(new_instr)
+
+    # Turn is either 0=left 1 = right
+    def update_orientation(self, turn):
+        self.orientation = (self.orientation + turn)%4
+
+    def update_color(self, color):
+        self.color_grid2D[self.position] = color
+
+
+    # Paint current panel and go forward in current direction (we asume a full queue with 2 instructions)
+    def paint_and_move(self):
+        
+        # get instructions for (new color, turn)
+        color = self.instruction.get()
+        turn  = self.instruction.get() 
+
+        # Update color of panel and orientation of robot
+        self.update_color(color)
+        self.update_orientation(turn)
+
+        # Go to next panel
+        new_x         = self.position[0] + self.DIR[self.orientation][0]
+        new_y         = self.position[1] + self.DIR[self.orientation][1]
+        self.position = (new_x, new_y)
+
+        # Increment the panel counter and update current color
+        self.color_out.put(self.color_grid2D[self.position]) #TODO: problem
+
+        # Add current (x,y) coordinate to the set of painted coordinates
+        self.panels_painted.add(self.position)
+
+
+# Day 2,5,7,9,11:
 class IntComputer: 
 
     INSTRUCTION_LEN      = 2
@@ -29,6 +85,10 @@ class IntComputer:
         self.memory_size       = 0
         self.addressing_modes  = [0, 0, 0]       
         self.debug_mode        = debug_mode          
+
+        # day 11:
+        self.robot             = PaintRobot(10000, 10000)
+        self.out_instr         = queue.Queue(1)  
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
@@ -86,7 +146,11 @@ class IntComputer:
         self.increment_program_pointer()
 
         self.output = outp
-        print(outp)
+        #print(outp)
+        
+        # day 11:
+        self.out_instr.put(outp)
+        
         if self.next_intcomputer != None:
             self.next_intcomputer.set_input(outp)
                 
@@ -216,8 +280,20 @@ class IntComputer:
             # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
 
-            # Evaluate the correct function 
+            #TODO: input current color (once per 2 ouputs = full instructionsqueue) before execution
+            if not self.robot.color_out.empty():
+                self.set_input(self.robot.color_out.get())
+            
+            #  Evaluate the correct function 
             self.instruction_dict[instruction_code]()
+
+            # TODO: feed output instructions to robot 
+            if not self.out_instr.empty():# empty or filled with 1 = full 
+                self.robot.get_instructions(self.out_instr.get())
+
+            # TODO: if we have aquired enough instructions (=2): paint panel and move forward
+            if self.robot.instruction.full():
+                self.robot.paint_and_move()
 
             if self.debug_mode:
                 self.debug_print_at_end_iter(iter, opcode, last_pointer)

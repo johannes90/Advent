@@ -1,4 +1,5 @@
 from AdventClasses import IntComputer
+from AdventClasses import PaintRobot
 
 # Load puzzle input 
 f = open("advent_11_input.txt", "r") # TODO: not passed, out= 203 0
@@ -7,33 +8,26 @@ puzzle_input = f.read()
 # Create new intcomputer
 intcomputer = IntComputer(False)
 
-
-# How many panels does the robot print at least once ?
-
-# 
-
 """
- - a robot (intcomputer) moves on a 2D grid, detect color of panel and print panel black or white
- - at start all panels are black
- - robot starts facing up
+ Start: direction: Up, panels all black
 
  Input at current panel:
- -  input=0 -> robot over black 
- -  input=1 -> robot over white 
+ -> color of current panel  (black
+  = 0, white = 1) 
 
 Output at current
  -> 1: outputs the new color (0=black, 1=white)
  -> 2: Turn (0=left, 1=right)
-
- - move forward one panel
-
 """
 
 # Parse puzzle input 
 intcomputer.parse_instruction(puzzle_input)
 
-# Provide input 
-intcomputer.set_input()
+# This is done in the initialization of color_out queue
+# Set first input/color the robot is on  
+#intcomputer.set_input(0)
 
-# Run program 
+# Execute programm
 intcomputer.execute_programm()
+
+print("Number of printed panels: ", len(intcomputer.robot.panels_painted))
