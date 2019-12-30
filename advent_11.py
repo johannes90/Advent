@@ -8,13 +8,13 @@ f = open("advent_11_input.txt", "r") # TODO: not passed, out= 203 0
 puzzle_input = f.read()
 
 # Create new intcomputer
-intcomputer = IntComputer(False)
+intcomputer = IntComputer(False, 11)
 
 # Parse puzzle input 
 intcomputer.parse_instruction(puzzle_input)
 
 # Execute programm
-intcomputer.execute_programm()
+intcomputer.execute_robot_programm()
 
 print("Number of printed panels: ", len(intcomputer.robot.panels_painted))
 

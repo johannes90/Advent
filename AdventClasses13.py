@@ -4,34 +4,6 @@
 import queue
 import numpy as np
 
-# Day 13: TODO: macht es sinn den roboter zu nutzen ? 
-class Arcade:
-
-    def __init__(self):
-        
-        self.x         = -1
-        self.y         = -1 
-        self.position  = (self.x, self.y)
-        self.tileID    = -1
-        self.tile      = (self.position, self.tileID)
-
-        self.instruction = queue.Queue(3)
-        self.tiles_set = {self.tile}  
-        self.ID_set    = {self.tileID}
-        
-        self.counter  = 0 # TODO: 
-
-    def get_instructions(self, new_instr):
-        self.instruction.put(new_instr)
-
-    def parse_instructions(self, instr):
-        self.x      = instr.get()
-        self.y      = instr.get()
-        self.tileID = instr.get()
-
-        if self.tileID == 2:
-            self.counter += 1
-
 # Day 11: 
 class PaintRobot:
 
@@ -96,8 +68,8 @@ class IntComputer:
     INSTRUCTION_LEN      = 2
     NUM_ADDRESSING_MODES = 3
 
-    def __init__(self, debug_mode = False, day = 13):
-        self.day              = day
+    def __init__(self, debug_mode = False):
+
         self.memory           = []                       # RAM of Int Computer
         self.program_pointer  = None                     # points on the adress of the current instruction of the programm
         self.instruction_dict = {1:  self.add,           # dictionary for instruction functions
@@ -121,10 +93,6 @@ class IntComputer:
         # day 11:
         self.robot             = PaintRobot(100, 100)
         self.out_instr         = queue.Queue(1)  
-
-        # day 13:
-        self.arcade            = Arcade()
-
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
@@ -185,8 +153,7 @@ class IntComputer:
         #print(outp)
         
         # day 11:
-        if self.day == 11 or self.day == 13:
-            self.out_instr.put(outp)
+        self.out_instr.put(outp)
         
         if self.next_intcomputer != None:
             self.next_intcomputer.set_input(outp)
@@ -303,64 +270,6 @@ class IntComputer:
         self.addressing_modes = list(map( lambda x : int(x), list(opcode_str[:self.NUM_ADDRESSING_MODES])))
 
     # execution of the programm based on the values of the puzzle inputs
-    def execute_robot_programm(self):
-        self.program_pointer = 0
-        
-        iter = 0
-        while(self.program_pointer>=0):
-            last_pointer = self.program_pointer             
-            opcode = self.memory[self.program_pointer]
-            self.increment_program_pointer()
-            
-            self.build_adressing_modes(opcode)
-
-            # The last two digits of the opcode are the instruction
-            instruction_code = opcode%100
-
-            # Input current color (once per 2 ouputs = full instructionsqueue) before execution
-            if not self.robot.color_out.empty():
-                self.set_input(self.robot.color_out.get())
-            
-            #  Evaluate the correct function 
-            self.instruction_dict[instruction_code]()
-
-            # Feed output instructions to robot 
-            if not self.out_instr.empty():# empty or filled with 1 = full 
-                self.robot.get_instructions(self.out_instr.get())
-
-            # Once we have aquired enough instructions (=2): paint panel and move forward
-            if self.robot.instruction.full():
-                self.robot.paint_and_move()
-
-
-    # execution of the programm based on the values of the puzzle inputs
-    def execute_arcade_programm(self):
-        self.program_pointer = 0
-        
-        iter = 0
-        while(self.program_pointer>=0):
-            last_pointer = self.program_pointer             
-            opcode = self.memory[self.program_pointer]
-            self.increment_program_pointer()
-            
-            self.build_adressing_modes(opcode)
-
-            # The last two digits of the opcode are the instruction
-            instruction_code = opcode%100
-            
-            #  Evaluate the correct function 
-            self.instruction_dict[instruction_code]()
-
-            # Feed output instructions to arcade
-            if not self.out_instr.empty():
-                self.arcade.get_instructions(self.out_instr.get())
-            
-
-            if self.arcade.instruction.full():
-                self.arcade.parse_instructions(self.arcade.instruction)
-            
-
-    # execution of the programm based on the values of the puzzle inputs
     def execute_programm(self):
         self.program_pointer = 0
         
@@ -374,9 +283,21 @@ class IntComputer:
 
             # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
+
+            #TODO: input current color (once per 2 ouputs = full instructionsqueue) before execution
+            if not self.robot.color_out.empty():
+                self.set_input(self.robot.color_out.get())
             
             #  Evaluate the correct function 
             self.instruction_dict[instruction_code]()
+
+            # TODO: feed output instructions to robot 
+            if not self.out_instr.empty():# empty or filled with 1 = full 
+                self.robot.get_instructions(self.out_instr.get())
+
+            # TODO: if we have aquired enough instructions (=2): paint panel and move forward
+            if self.robot.instruction.full():
+                self.robot.paint_and_move()
 
             if self.debug_mode:
                 self.debug_print_at_end_iter(iter, opcode, last_pointer)
