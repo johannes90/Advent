@@ -19,5 +19,6 @@ intcomputer.execute_robot_programm()
 print("Number of printed panels: ", len(intcomputer.robot.panels_painted))
 
 # Visualize result:
-plt.imshow(np.rot90(np.rot90(np.rot90(np.fliplr(intcomputer.robot.color_grid2D)))))
+#plt.imshow(np.rot90(np.rot90(np.rot90(np.fliplr(intcomputer.robot.color_grid2D)))))
+plt.imshow(np.flipud(intcomputer.robot.color_grid2D))
 plt.show()

@@ -3,36 +3,107 @@
 """
 import queue
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 # Day 13: TODO: macht es sinn den roboter zu nutzen ? 
 class Arcade:
 
     def __init__(self):
         
-        self.x         = -1
-        self.y         = -1 
-        self.position  = (self.x, self.y)
-        self.tileID    = -1
-        self.tile      = (self.position, self.tileID)
+        self.tiles     = {}
+
+        #NOTE: I assume there exist only one ball and one paddle  
+        self.ball      = {"x": -1, "y": -1}  #TODO: we have to update that alongside of tiles
+        self.paddle    = {"x": -1, "y": -1}  #TODO: we have to update that alongside of tiles
 
         self.instruction = queue.Queue(3)
-        self.tiles_set = {self.tile}  
-        self.ID_set    = {self.tileID}
-        
-        self.counter  = 0 # TODO: 
+        self.block_tile_counter  = 0 # TODO: in the later structure that needs to be computed more efficiently
 
+        # Part 2:
+        self.joystick = 0  # 0=neutral, -1=left, +1=right
+        self.score    = 0  # represents current score
+        self.game_ready = False
+        self.game_changed = False # ball or paddle moved 
+        self.ball_moved   = True # the ball moved 
+    # Get Instructions (once the intcomputer generates an output)
     def get_instructions(self, new_instr):
         self.instruction.put(new_instr)
 
+    # The instructions(intcomputer -> Arcade) update the tiles on the map or display the players score 
     def parse_instructions(self, instr):
-        self.x      = instr.get()
-        self.y      = instr.get()
-        self.tileID = instr.get()
+        
+        arg1 = instr.get()
+        arg2 = instr.get()
+        arg3 = instr.get()
+        assert(instr.empty() == True)
 
-        if self.tileID == 2:
-            self.counter += 1
+        # Update the players score 
+        if arg1 == -1  and arg2  == 0:
+            self.score= arg3
+            print("The players score is: ", self.score)
 
-# Day 11: 
+        # Or Update the tiles 
+        else:
+            tile_pos = (arg1, arg2) 
+            tile_ID  = arg3
+            self.tiles[tile_pos] = tile_ID
+
+            # Update the ball and paddle copy
+            if tile_ID == 4: # ball
+                self.ball["x"] = arg1
+                self.ball["y"] = arg2
+
+                self.game_changed = True
+                
+            elif tile_ID == 3: # paddle   
+                self.paddle["x"] = arg1
+                self.paddle["y"] = arg2
+
+                self.game_changed = True
+            # Solution to part 1: count all block tiles
+            elif tile_ID == 2: 
+                self.block_tile_counter += 1
+        if self.ball["x"] != -1 and self.paddle["x"] != -1:
+            self.game_ready = True
+            
+    # Function that controls the paddle tile
+    def control_joystick(self):
+
+        # We only apply a new input if the old one was processed 
+        # -> That is taken care of because we only control after a new state 
+        # of the game is observed 
+        
+        # We want to control the paddle directly below the ball
+        pos_error = self.paddle["x"] - self.ball["x"]
+
+        # Apply a simple proportional feedback controller
+        self.joystick = np.sign(-pos_error)
+        print("ball: ", self.ball["x"], "paddle: ", self.paddle["x"], "-> joystick = ", self.joystick)
+        #print()
+
+    def plot_arcade_status(self, multiple):
+
+        if multiple == 0:     
+            # Print the current status of the tiles
+            tileID_marker = {1: "p", 2: "s", 3: "_", 4: "o"} #1=wall, 2=block, 3=paddle, 4=ball
+            tileID_color  = {1: "black", 2: "black", 3: "red", 4: "red"}
+            for key, value in self.tiles.items():   #{self.position: self.tileID}
+                if value != 0:
+                    plt.scatter(*zip(*[key]), marker = tileID_marker[value], color = "black")
+            
+            plt.show(block=True)
+            #plt.pause(1)
+            #plt.close()
+
+            self.game_changed = False 
+        else:
+            pass 
+
+# Day 11: (Composition = robot hat die andere klasse als variable)
+# Interfaces haben namen und definieren Methoden, die vorhanden sein müssen 
+#   -> brauch ich in python wahrscheinlich nicht
+# Incomputer 
 class PaintRobot:
 
     def __init__(self, width, height):
@@ -99,7 +170,7 @@ class IntComputer:
     def __init__(self, debug_mode = False, day = 13):
         self.day              = day
         self.memory           = []                       # RAM of Int Computer
-        self.program_pointer  = None                     # points on the adress of the current instruction of the programm
+        self.program_pointer  = None                     # points on the address of the current instruction of the programm
         self.instruction_dict = {1:  self.add,           # dictionary for instruction functions
                                  2:  self.multiply, 
                                  3:  self.inqueue,
@@ -152,7 +223,7 @@ class IntComputer:
         self.increment_program_pointer()
 
         solution = arg1 + arg2
-        # Use setter function to check if adressing mode of target is 0 or 2 (1 does not make sense )
+        # Use setter function to check if addressing mode of target is 0 or 2 (1 does not make sense )
         self.set_parameter_from_mode(self.addressing_modes[-3], solution, self.program_pointer)
 
     # Instruction 2: Multiplication
@@ -170,7 +241,7 @@ class IntComputer:
     
     # Instruction 3: 
     def inqueue(self):
-
+        assert(not self.input.empty()) # TODO: rausnehmen nach debuggen
         solution = self.input.get()
         self.set_parameter_from_mode(self.addressing_modes[-1], solution, self.program_pointer)
 
@@ -282,20 +353,20 @@ class IntComputer:
         # in day 9 a new mode is introduced that holds also for writing
         elif mode == 2:
             self.memory[self.memory[address] + self.relative_base] = solution
-            # solution_adress = self.memory[self.program_pointer]
+            # solution_address = self.memory[self.program_pointer]
 
         else:
             raise ValueError 
         self.increment_program_pointer()
 
-    # The opcode (current adress the pointer points on) is filled up to NUM_ADDRESSING_MODES + INSTRUCTION_LEN (=5) digits in total
-    # The first left NUM_ADDRESSING_MODES (=3) of the opcode determine the mode of adressing the target of the operation, followed by INSTRUCTION_LEN(2) instructions
+    # The opcode (current address the pointer points on) is filled up to NUM_ADDRESSING_MODES + INSTRUCTION_LEN (=5) digits in total
+    # The first left NUM_ADDRESSING_MODES (=3) of the opcode determine the mode of addressing the target of the operation, followed by INSTRUCTION_LEN(2) instructions
     # Let (AM3, AM2, AM1, I2, I1) be the zero padded opcode and, then the entries mean:
-    # AM3 = adressing mode of the target 
-    # AM2 = adressing mode of the second argument
-    # AM1 = adressing mode of the first argument
+    # AM3 = addressing mode of the target 
+    # AM2 = addressing mode of the second argument
+    # AM1 = addressing mode of the first argument
     # I2, I1 = Instruction 
-    def build_adressing_modes(self, opcode):
+    def build_addressing_modes(self, opcode):
 
         # Fill up opcode with zeros to constant length
         opcode_str = str(opcode).zfill(self.NUM_ADDRESSING_MODES + self.INSTRUCTION_LEN)
@@ -312,7 +383,7 @@ class IntComputer:
             opcode = self.memory[self.program_pointer]
             self.increment_program_pointer()
             
-            self.build_adressing_modes(opcode)
+            self.build_addressing_modes(opcode)
 
             # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
@@ -343,11 +414,19 @@ class IntComputer:
             opcode = self.memory[self.program_pointer]
             self.increment_program_pointer()
             
-            self.build_adressing_modes(opcode)
+            self.build_addressing_modes(opcode)
 
             # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
             
+            #TODO: nur den Joystick bewegen und diese position weitergeben, wenn ein input verlangt wird
+            if instruction_code == 3: 
+                self.arcade.control_joystick() 
+                self.set_input(self.arcade.joystick) 
+                multple = 1000
+                self.arcade.plot_arcade_status(iter%multple)
+
+                iter += 1 
             #  Evaluate the correct function 
             self.instruction_dict[instruction_code]()
 
@@ -355,10 +434,12 @@ class IntComputer:
             if not self.out_instr.empty():
                 self.arcade.get_instructions(self.out_instr.get())
             
-
+            # Once we gathered 3 instructions -> arcades does an action
             if self.arcade.instruction.full():
                 self.arcade.parse_instructions(self.arcade.instruction)
-            
+                
+
+               
 
     # execution of the programm based on the values of the puzzle inputs
     def execute_programm(self):
@@ -370,7 +451,7 @@ class IntComputer:
             opcode = self.memory[self.program_pointer]
             self.increment_program_pointer()
             
-            self.build_adressing_modes(opcode)
+            self.build_addressing_modes(opcode)
 
             # The last two digits of the opcode are the instruction
             instruction_code = opcode%100
@@ -382,12 +463,12 @@ class IntComputer:
                 self.debug_print_at_end_iter(iter, opcode, last_pointer)
             iter += 1
     # Reads the memory of the int computer at a given address
-    def read_memory(self, adress):
-        return self.memory[adress]
+    def read_memory(self, address):
+        return self.memory[address]
 
     # Sets the memory of the int computer at a given address 
-    def set_memory(self, adress, value):
-        self.memory[adress] = value
+    def set_memory(self, address, value):
+        self.memory[address] = value
 
     # Put one element of the input queue 
     def set_input(self, input):
@@ -404,5 +485,5 @@ class IntComputer:
         print("Pointer(start of iter): ", last_pointer)
         print("Pointer(end of iter): ", self.program_pointer)
         print("Opcode: ", opcode)
-        print("adressing modes: ", self.addressing_modes)   
+        print("addressing modes: ", self.addressing_modes)   
         print("Instruction: ", opcode%100, "-> fct:", str(self.instruction_dict[opcode%100])) 
