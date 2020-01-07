@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# Day 13: TODO: macht es sinn den roboter zu nutzen ? 
+# Day 13: 
 class Arcade:
 
     def __init__(self):
@@ -14,11 +14,11 @@ class Arcade:
         self.tiles     = {}
 
         #NOTE: I assume there exist only one ball and one paddle  
-        self.ball      = {"x": -1, "y": -1}  #TODO: we have to update that alongside of tiles
-        self.paddle    = {"x": -1, "y": -1}  #TODO: we have to update that alongside of tiles
+        self.ball      = {"x": -1, "y": -1}  
+        self.paddle    = {"x": -1, "y": -1}  
 
         self.instruction = queue.Queue(3)
-        self.block_tile_counter  = 0 # TODO: in the later structure that needs to be computed more efficiently
+        self.block_tile_counter  = 0 
 
         # Part 2:
         self.joystick = 0  # 0=neutral, -1=left, +1=right
@@ -26,6 +26,7 @@ class Arcade:
         self.game_ready = False
         self.game_changed = False # ball or paddle moved 
         self.ball_moved   = True # the ball moved 
+
     # Get Instructions (once the intcomputer generates an output)
     def get_instructions(self, new_instr):
         self.instruction.put(new_instr)
@@ -33,6 +34,7 @@ class Arcade:
     # The instructions(intcomputer -> Arcade) update the tiles on the map or display the players score 
     def parse_instructions(self, instr):
         
+        # Every 3 instructions an action is performed
         arg1 = instr.get()
         arg2 = instr.get()
         arg3 = instr.get()
@@ -40,7 +42,7 @@ class Arcade:
 
         # Update the players score 
         if arg1 == -1  and arg2  == 0:
-            self.score= arg3
+            self.score = arg3
             print("The players score is: ", self.score)
 
         # Or Update the tiles 
@@ -64,8 +66,6 @@ class Arcade:
             # Solution to part 1: count all block tiles
             elif tile_ID == 2: 
                 self.block_tile_counter += 1
-        if self.ball["x"] != -1 and self.paddle["x"] != -1:
-            self.game_ready = True
             
     # Function that controls the paddle tile
     def control_joystick(self):
@@ -79,8 +79,7 @@ class Arcade:
 
         # Apply a simple proportional feedback controller
         self.joystick = np.sign(-pos_error)
-        print("ball: ", self.ball["x"], "paddle: ", self.paddle["x"], "-> joystick = ", self.joystick)
-        #print()
+        #print("ball: ", self.ball["x"], "paddle: ", self.paddle["x"], "-> joystick = ", self.joystick)
 
     def plot_arcade_status(self, multiple):
 
@@ -88,7 +87,7 @@ class Arcade:
             # Print the current status of the tiles
             tileID_marker = {1: "p", 2: "s", 3: "_", 4: "o"} #1=wall, 2=block, 3=paddle, 4=ball
             tileID_color  = {1: "black", 2: "black", 3: "red", 4: "red"}
-            for key, value in self.tiles.items():   #{self.position: self.tileID}
+            for key, value in self.tiles.items():   # {(x,y) pos: tile ID}
                 if value != 0:
                     plt.scatter(*zip(*[key]), marker = tileID_marker[value], color = "black")
             
@@ -102,7 +101,7 @@ class Arcade:
 
 # Day 11: (Composition = robot hat die andere klasse als variable)
 # Interfaces haben namen und definieren Methoden, die vorhanden sein müssen 
-#   -> brauch ich in python wahrscheinlich nicht
+# Interfaces brauch ich in python wahrscheinlich nicht weil es einfach so funktioniert
 # Incomputer 
 class PaintRobot:
 
@@ -122,6 +121,13 @@ class PaintRobot:
         self.color_out    = queue.Queue(1)                                      # queue for the color on the current panel
         self.color_out.put(1)                                                   # startcolor of robot
         
+        # Use the oo concept of composition here
+        self.brain        = IntComputer() 
+        self.brain.connect_with_next_intcomputer(self)
+
+
+    def execute_programm(self):
+        print("")
     # order: (color, turn)
     def get_instructions(self, new_instr):
         self.instruction.put(new_instr)
@@ -136,7 +142,6 @@ class PaintRobot:
 
     def update_color(self, color):
         self.color_grid2D[self.position] = color
-
 
     # Paint current panel and go forward in current direction (we asume a full queue with 2 instructions)
     def paint_and_move(self):
@@ -155,7 +160,7 @@ class PaintRobot:
         self.position = (new_x, new_y)
 
         # Increment the panel counter and update current color
-        self.color_out.put(self.color_grid2D[self.position]) #TODO: problem
+        self.color_out.put(self.color_grid2D[self.position]) 
 
         # Add current (x,y) coordinate to the set of painted coordinates
         self.panels_painted.add(self.position)

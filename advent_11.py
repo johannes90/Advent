@@ -1,24 +1,26 @@
-from AdventClasses import IntComputer
-from AdventClasses import PaintRobot
+from IntComputer import IntComputer
+from PaintRobot import PaintRobot
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Load puzzle input 
-f = open("advent_11_input.txt", "r") # TODO: not passed, out= 203 0
-puzzle_input = f.read()
+# Create the hull painting robot
+robot = PaintRobot(500, 500)
 
-# Create new intcomputer
-intcomputer = IntComputer(False, 11)
+# Part 1: The robot seems to be on a BLACK panel
+black = 0
+robot.update_color(black)
+robot.start_painting()
 
-# Parse puzzle input 
-intcomputer.parse_instruction(puzzle_input)
+# Print the solution for part 1
+print("Painted panels ", len(robot.panels_painted))
 
-# Execute programm
-intcomputer.execute_robot_programm()
+# Part 2: The robot seems to be on a WHITE panel
+# Create new hull painting robot
+robot = PaintRobot(500, 500)
+white = 1
+robot.update_color(white)
+robot.start_painting()
 
-print("Number of printed panels: ", len(intcomputer.robot.panels_painted))
-
-# Visualize result:
-#plt.imshow(np.rot90(np.rot90(np.rot90(np.fliplr(intcomputer.robot.color_grid2D)))))
-plt.imshow(np.flipud(intcomputer.robot.color_grid2D))
+# Plot the solution for part 2
+plt.imshow(np.flipud(robot.color_grid2D))
 plt.show()
