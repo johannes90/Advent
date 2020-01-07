@@ -10,26 +10,24 @@ from IntComputer import IntComputer
 
 class PaintRobot:
 
-    def __init__(self, width, height):
+    def __init__(self):
         
-        self.DIR             = {0: [0,1], 1: [-1,0], 2: [0,-1], 3: [1,0]}       # (x,y) directions (up, left, down, right)
+        self.DIR             = {0: [0,1], 1: [-1,0], 2: [0,-1], 3: [1,0]}  # Directions on 2D plane: up,left,down,right   
         self.NUM_ROBOT_INSTR = 2
-
-        self.grid_height  = height
-        self.grid_width   = width
-        self.color_grid2D = np.zeros((self.grid_height, self.grid_width))
-        self.orientation  = 0                                                   # start with orientation 0 = upwards
-        self.position     = int(self.grid_height/2.0), int(self.grid_width/2.0) # set robot into the middle of the map
-        self.panels_painted = {self.position}                                   # set containing the starting point 
+        self.orientation     = 0                                                   
+        self.position        = (0,0)
+        self.color           = 0
+        self.panels          = {self.position: self.color}
+        self.min_x           = 0
+        self.min_y           = 0 
+        self.max_x           = 0
+        self.max_y           = 0
+        self.instruction     = queue.Queue(self.NUM_ROBOT_INSTR)                   
+        self.brain           = IntComputer(False, 11) # composition
         
-        # Part 2: set initial panel to white color
-        self.color_grid2D[self.position] = 1
-        self.instruction  = queue.Queue(self.NUM_ROBOT_INSTR)                   # queue for color and turn instruction
-       
-        # Use the oo concept of composition here
-        self.brain        = IntComputer(False, 11) 
+        # Connect the brain with the robot in order to obtain the inputs
         self.brain.connect_with_next_intcomputer(self)
-        f = open("advent_11_input.txt", "r") # TODO: not passed, out= 203 0
+        f = open("advent_11_input.txt", "r")
         self.robot_programm = f.read()
 
 
@@ -42,9 +40,7 @@ class PaintRobot:
         # Give initial color of the robot to the intcomputer  
         self.brain.set_input(self.get_color())
         
-        # Execute the intcomputer programm
-        # Whenever the intcode computer has an output that is passed 
-        # to the robot, the robot processes the output and gives back an input
+        # Execute the program using the braint (intcomputer)
         self.brain.execute_programm()
 
 
@@ -52,24 +48,23 @@ class PaintRobot:
     def set_input(self, input):
         
         self.instruction.put(input)
+        
         # 2 inputs = 1 instruction
-
         if self.instruction.full():
             self.paint_and_move()
 
 
     # Turn is either 0=left 1 = right
     def update_orientation(self, turn):
-        if turn == 0:
-            delta_orientation = -1
-        elif turn == 1:
-            delta_orientation = 1 
-        self.orientation = (self.orientation + delta_orientation)%4
+
+        self.orientation = (self.orientation + 2*turn-1)%4
 
 
     # Paint the current panel with a given color
     def update_color(self, color):
-        self.color_grid2D[self.position] = color
+
+        self.panels[self.position] = color
+        #self.color_grid2D[self.position] = color
 
 
     # Paint current panel and go forward in current direction (we asume a full queue with 2 instructions)
@@ -88,14 +83,52 @@ class PaintRobot:
         new_y         = self.position[1] + self.DIR[self.orientation][1]
         self.position = (new_x, new_y)
 
+        # Add current (x,y) coordinate to the set of painted coordinates
+        #self.panels_painted.add(self.position) 
+        if (self.position in self.panels) == False:
+            self.panels[self.position] = 0 # every new panel is black
+        
         # Pass current color to the robots brain (intcomputer) as an input 
         self.brain.set_input(self.get_color())
 
-        # Add current (x,y) coordinate to the set of painted coordinates
-        self.panels_painted.add(self.position) 
+        # update min values
+        self.update_min_max(new_x, new_y)
 
 
     # Getter function for the color of the current position
     def get_color(self):
 
-        return self.color_grid2D[self.position]
+        return self.panels[self.position]
+        #return self.color_grid2D[self.position]
+
+    # Update min and max x,y coordinates 
+    def update_min_max(self, x, y):
+
+        if x < self.min_x:
+            self.min_x = x
+        elif x > self.max_x:
+            self.max_x = x
+
+        if y < self.min_y:
+            self.min_y = y
+        elif y > self.max_y:
+            self.max_y = y
+
+    # Convert the dictionary into a map 
+    def build_map(self):
+
+        x_dim = (self.max_x - self.min_x) + 1
+        y_dim = (self.max_y - self.min_y) + 1
+        color_grid2D = np.zeros((x_dim, y_dim))
+
+        # Loop through all seen panels and plot them on a grid
+        for item in self.panels.items(): 
+
+            # Shift data to have only positive values
+            x = item[0][0] - self.min_x
+            y = item[0][1] - self.min_y 
+            position = (x,y)
+            color    = item[1]
+            color_grid2D[position] = color 
+        
+        return color_grid2D

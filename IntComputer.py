@@ -213,36 +213,6 @@ class IntComputer:
 
         self.addressing_modes = list(map( lambda x : int(x), list(opcode_str[:self.NUM_ADDRESSING_MODES])))
 
-    # execution of the programm based on the values of the puzzle inputs
-    def execute_robot_programm(self):
-        self.program_pointer = 0
-        
-        iter = 0
-        while(self.program_pointer>=0):
-            last_pointer = self.program_pointer             
-            opcode = self.memory[self.program_pointer]
-            self.increment_program_pointer()
-            
-            self.build_addressing_modes(opcode)
-
-            # The last two digits of the opcode are the instruction
-            instruction_code = opcode%100
-
-            # Input current color (once per 2 ouputs = full instructionsqueue) before execution
-            if not self.robot.color_out.empty():
-                self.set_input(self.robot.color_out.get())
-            
-            #  Evaluate the correct function 
-            self.instruction_dict[instruction_code]()
-
-            # Feed output instructions to robot 
-            if not self.out_instr.empty():# empty or filled with 1 = full 
-                self.robot.get_instructions(self.out_instr.get())
-
-            # Once we have aquired enough instructions (=2): paint panel and move forward
-            if self.robot.instruction.full():
-                self.robot.paint_and_move()
-
 
     # execution of the programm based on the values of the puzzle inputs
     def execute_arcade_programm(self):
