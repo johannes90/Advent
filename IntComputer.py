@@ -31,9 +31,10 @@ class IntComputer:
         self.addressing_modes  = [0, 0, 0]       
         self.debug_mode        = debug_mode          
 
-        # day 11:
-        self.out_instr         = queue.Queue(1)  
-
+        # day 13: With default the input_receiver is not connected to another device
+        # NOTE: der Inputreceiver muss einen request senden können und daraufhin entweder ignoriert werden 
+        # oder einen Input von einer anderen Instand bekommen, z.b. von der Konsole oder einem anderen Objekt
+        self.input_receiver    = None
 
     # The string of instructions is parsed as a list of ints into the RAM of the Int Computer
     def parse_instruction(self, instruction_string):
@@ -79,6 +80,14 @@ class IntComputer:
     
     # Instruction 3: 
     def inqueue(self):
+
+        #NOTE: new wenn der input empty ist, kann der receiver genuttz werden, 
+        # anstatt auf einen input zu warten 
+        if self.input.empty():
+            if self.input_receiver != None: 
+                self.set_input(self.input_receiver.ask_for_input()) #TODO: welcher Datentyp ist das am besten?
+
+
         assert(not self.input.empty()) # TODO: rausnehmen nach debuggen
         solution = self.input.get()
         self.set_parameter_from_mode(self.addressing_modes[-1], solution, self.program_pointer)
@@ -92,13 +101,8 @@ class IntComputer:
 
         self.output = outp
         #print(outp)
-        
-        # day 11:
-        if self.day == 13:
-            self.out_instr.put(outp)
 
-        # day 11: we feed the output to a connected device (=robot)
-        # the robot needs a set_input() method
+        # day 11, 13: we feed the output to a connected device
         if self.next_intcomputer != None:
             self.next_intcomputer.set_input(outp)
                 
@@ -213,42 +217,7 @@ class IntComputer:
 
         self.addressing_modes = list(map( lambda x : int(x), list(opcode_str[:self.NUM_ADDRESSING_MODES])))
 
-
-    # execution of the programm based on the values of the puzzle inputs
-    def execute_arcade_programm(self):
-        self.program_pointer = 0
         
-        iter = 0
-        while(self.program_pointer>=0):
-            last_pointer = self.program_pointer             
-            opcode = self.memory[self.program_pointer]
-            self.increment_program_pointer()
-            
-            self.build_addressing_modes(opcode)
-
-            # The last two digits of the opcode are the instruction
-            instruction_code = opcode%100
-            
-            #TODO: nur den Joystick bewegen und diese position weitergeben, wenn ein input verlangt wird
-            if instruction_code == 3: 
-                self.arcade.control_joystick() 
-                self.set_input(self.arcade.joystick) 
-                multple = 1000
-                self.arcade.plot_arcade_status(iter%multple)
-
-                iter += 1 
-            #  Evaluate the correct function 
-            self.instruction_dict[instruction_code]()
-
-            # Feed output instructions to arcade
-            if not self.out_instr.empty():
-                self.arcade.get_instructions(self.out_instr.get())
-            
-            # Once we gathered 3 instructions -> arcades does an action
-            if self.arcade.instruction.full():
-                self.arcade.parse_instructions(self.arcade.instruction)
-                
-
     # execution of the programm based on the values of the puzzle inputs
     def execute_programm(self):
         self.program_pointer = 0
@@ -267,8 +236,6 @@ class IntComputer:
             #  Evaluate the correct function 
             self.instruction_dict[instruction_code]()
 
-            if self.debug_mode:
-                self.debug_print_at_end_iter(iter, opcode, last_pointer)
             iter += 1
     # Reads the memory of the int computer at a given address
     def read_memory(self, address):
@@ -286,12 +253,6 @@ class IntComputer:
     def connect_with_next_intcomputer(self, intcomputer):
         self.next_intcomputer = intcomputer
 
-    # Functionality for debugging prints
-    def debug_print_at_end_iter(self, iter, opcode, last_pointer):
-
-        print("Iteration: ", iter)
-        print("Pointer(start of iter): ", last_pointer)
-        print("Pointer(end of iter): ", self.program_pointer)
-        print("Opcode: ", opcode)
-        print("addressing modes: ", self.addressing_modes)   
-        print("Instruction: ", opcode%100, "-> fct:", str(self.instruction_dict[opcode%100])) 
+    # Connect inputreceiver with other devices/console
+    def connect_input_receiver(self, other_device):
+        self.input_receiver = other_device

@@ -1,79 +1,32 @@
 """
     Day 13: Care Package
-
-    - draw square tiles on a grid 
-    - every every 3 output instructions specify:
-       -> x = dist from left, 
-       -> y = dist from top
-       -> tile id
-
-       or if 
-       arg1 = -1, arg2 = 0 
-       -> arg3 = current score 
-
-    - tile ID: 
-        -> 0: empty tile 
-        -> 1: wall tile  (indestructable barriers)
-        -> 2: block tile (can be broken)
-        -> 3: horizontal paddle tile (indestructable)
-        -> 4: ball tile (moves diagonal, bounces off objects)
-
-    - set memory[0] = 2 to play for free
-    
-    - joystick 
-        -> -1: Left 
-        -> 0:  neutral
-        -> 1:  right 
-
-    Part2: 
-    I just have to print/plot the arcade game 
-    and provide the correct joystick inputs
-
-    The rest is handled by the intcode programm
-    
-    Output Int -> Arcade: 
-    -sobald ein output da ist, wird er
-    in der arcade instr queue gespeichter,
-
-    - sobald die queue voll ist, werden die instr geparsed
-    -> ein neuer Bildschirm entsteht
-
-    Sobald ein Ball und ein paddle exisieren und 
-    direkt nachdem ein neuer Bildschirm entsteht, 
-    soll das paddle anhand geregelt werden 
-    -> input an den Intcomputer 
-
-    
-
-                          
-
+    The Intcomputer is used as a brain inside an Arcade
+    The intcomputer is provided with the current joystick position (-1:left 0:stay +1:right)
+    The intcomputer outputs the players score or game tiles position and id (0:empty 1:wall 2:block 3:game paddle 4:ball)
+    Part 1: How many blocks are on the screen (with no input)
+    Part 2: What is score when the game is finished
 """
 
-from AdventClasses import IntComputer
-from AdventClasses import PaintRobot
+from IntComputer import IntComputer
+from Arcade import Arcade
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Load puzzle input 
-f = open("advent_13_input.txt", "r") # TODO: not passed, out= 203 0
-puzzle_input = f.read()
+# Initialize the arcade
+arcade = Arcade()
 
-# Create new intcomputer
-intcomputer = IntComputer(False, 13)
+# Set game mode
+arcade.set_game_mode("AI")
 
-# Parse puzzle input 
-intcomputer.parse_instruction(puzzle_input)
+# Start the game
+arcade.start_game()
 
-# Set memory at adress 0 to 2 in order to play for free 
-intcomputer.set_memory(0, 2)
-
-# Execute Arcade
-intcomputer.execute_arcade_programm()
 
 # Part 1 : Block tiles on the screen when the game exits:
-print(intcomputer.arcade.block_tile_counter)
+print(arcade.block_tile_counter)
 
 # Part 2: Break all blocks, what is the score after last block is broken
+# -> score is displayed in console
 
-# Print the game 
+# TODO: Print the game display dynamically  
 
