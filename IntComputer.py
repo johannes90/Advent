@@ -250,7 +250,7 @@ class IntComputer:
         self.input.put(input)
 
     # Connects two int computer
-    def connect_with_next_intcomputer(self, intcomputer):
+    def connect_with_next_intcomputer(self, intcomputer): # TODO: refactor name: connect_output_to_other
         self.next_intcomputer = intcomputer
 
     # Connect inputreceiver with other devices/console
